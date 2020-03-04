@@ -17,7 +17,7 @@ Rule Name:
   IAM_ROLE_NOT_USED
 
 Description:
-  Check that an AWS IAM Role is being used in the last X days
+  Check that an AWS IAM Role is being used in the last X days, default value is 90 days
 
 Rationale:
   Ensure that no AWS IAM Role is unused and make an action if unused (e.g. delete the user).
@@ -58,6 +58,7 @@ from rdklib import Evaluator, Evaluation, ConfigRule, ComplianceType, InvalidPar
 CURRENT_TIME = datetime.now(timezone.utc)
 RESOURCE_TYPE = 'AWS::IAM::Role'
 PAGE_SIZE = 20
+DEFAULT_DAYS = 90
 
 
 class IAM_ROLE_NOT_USED(ConfigRule):
@@ -70,7 +71,6 @@ class IAM_ROLE_NOT_USED(ConfigRule):
         for username in describe_roles(config_client):
             user_data = iam_client.get_role(RoleName=username)
             last_used = user_data['Role']['RoleLastUsed']
-            #compliance_type = ComplianceType.NOT_APPLICABLE
             if last_used:
                 diff = (CURRENT_TIME - last_used['LastUsedDate']).days
             else:
@@ -85,12 +85,11 @@ class IAM_ROLE_NOT_USED(ConfigRule):
         return evaluations
 
     def evaluate_parameters(self, rule_parameters):
-        valid_rule_parameters = rule_parameters
         if 'DaysBeforeUnused' not in rule_parameters:
-            raise ValueError('The Config Rule must have the parameter "DaysBeforeUnused"')
+            raise InvalidParametersError('The Config Rule must have the parameter "DaysBeforeUnused"')
 
-        if not rule_parameters['DaysBeforeUnused']:
-            rule_parameters['DaysBeforeUnused'] = 90
+        if not rule_parameters.get('DaysBeforeUnused'):
+            rule_parameters['DaysBeforeUnused'] = DEFAULT_DAYS
 
         # The int() function will raise an error if the string configured can't be converted to an integer
         try:
@@ -100,7 +99,7 @@ class IAM_ROLE_NOT_USED(ConfigRule):
 
         if rule_parameters['DaysBeforeUnused'] < 0:
             raise InvalidParametersError('The parameter "DaysBeforeUnused" must be greater than or equal to 0')
-        return valid_rule_parameters
+        return rule_parameters
 
 
 def describe_roles(config_client):
