@@ -11,9 +11,6 @@
 
 import unittest
 from mock import patch, MagicMock, call
-import botocore
-from botocore.exceptions import ClientError
-import rdklib
 from rdklib import Evaluation, ComplianceType
 import rdklibtest
 
@@ -39,7 +36,7 @@ CONFIG_CLIENT_MOCK = MagicMock()
 def mock_get_client(client_name, *args, **kwargs):
     if client_name == 'elbv2':
         return ELBV2_CLIENT_MOCK
-    elif client_name == 'config':
+    if client_name == 'config':
         return CONFIG_CLIENT_MOCK
     raise Exception("Attempting to create an unknown client")
 
@@ -73,7 +70,7 @@ class ComplianceTest(unittest.TestCase):
         rdklibtest.assert_successful_evaluation(self, response, [], 0)
 
     def test_scenario2_allAlbListenersAreSsl_returnsCompliant(self):
-        self.mock_albs_in_config(['arn1'])
+        mock_albs_in_config(['arn1'])
         ELBV2_CLIENT_MOCK.describe_listeners = MagicMock(
             return_value={'Listeners': [{'ListenerArn': 'arn1', 'SslPolicy': 'Some_policy_1'}, {'ListenerArn': 'arn2', 'SslPolicy': 'Some_policy_2'}]}
         )
@@ -81,7 +78,7 @@ class ComplianceTest(unittest.TestCase):
         rdklibtest.assert_successful_evaluation(self, response, [Evaluation(ComplianceType.COMPLIANT, 'arn1', ELB_RESOURCE_TYPE)], 1)
 
     def test_scenario3_AlbHasHttpListenerWithNoSSLRedirect_returnsNonCompliant(self):
-        self.mock_albs_in_config(['arn1', 'arn2'])
+        mock_albs_in_config(['arn1', 'arn2'])
         ELBV2_CLIENT_MOCK.describe_listeners = MagicMock(
             return_value={'Listeners': [
                 {'ListenerArn': 'arn1', 'DefaultActions': [{'RedirectConfig': {'Protocol': 'HTTP'}, 'Type': 'other'}]},
@@ -101,7 +98,7 @@ class ComplianceTest(unittest.TestCase):
         rdklibtest.assert_successful_evaluation(self, response, resp_expected, 2)
 
     def test_scenario4_allHttpListenersForAlbHaveSslRedirectionEnabled_returnsCompliant(self):
-        self.mock_albs_in_config(['arn1', 'arn2'])
+        mock_albs_in_config(['arn1', 'arn2'])
         ELBV2_CLIENT_MOCK.describe_listeners = MagicMock(
             return_value={'Listeners': [
                 {'ListenerArn': 'arn1', 'DefaultActions': [{'RedirectConfig': {'Protocol': 'HTTPS'}, 'Type': 'redirect'}]},
@@ -205,7 +202,7 @@ class ComplianceTest(unittest.TestCase):
         rdklibtest.assert_successful_evaluation(self, response, resp_expected, 3)
 
     def test_scenario4_describeListenersPagination_returnsCompliant(self):
-        self.mock_albs_in_config(['arn1'])
+        mock_albs_in_config(['arn1'])
 
         ELBV2_CLIENT_MOCK.describe_listeners = MagicMock(side_effect=[
             {
@@ -246,7 +243,7 @@ class ComplianceTest(unittest.TestCase):
         ])
 
     def test_scenario4_describeRulesPagination_returnsCompliant(self):
-        self.mock_albs_in_config(['arn1'])
+        mock_albs_in_config(['arn1'])
 
         ELBV2_CLIENT_MOCK.describe_listeners = MagicMock(
             return_value={'Listeners': [
@@ -283,23 +280,23 @@ class ComplianceTest(unittest.TestCase):
                                 Marker='ghi')
         ])
 
-    def mock_albs_in_config(self, alb_arns):
-        CONFIG_CLIENT_MOCK.list_discovered_resources = MagicMock(return_value={
-            'resourceIdentifiers': [
-                {
-                    'resourceType': ELB_RESOURCE_TYPE,
-                    'resourceId': arn,
-                    'resourceName': 'load-balancer-' + arn
-                } for arn in alb_arns
-            ]
-        })
-        CONFIG_CLIENT_MOCK.batch_get_resource_config = MagicMock(return_value={
-            'baseConfigurationItems': [
-                {
-                    'resourceType': ELB_RESOURCE_TYPE,
-                    'resourceId': arn,
-                    'resourceName': 'load-balancer-' + arn,
-                    'configuration': '{"type": "application"}'
-                } for arn in alb_arns
-            ]
-        })
+def mock_albs_in_config(alb_arns):
+    CONFIG_CLIENT_MOCK.list_discovered_resources = MagicMock(return_value={
+        'resourceIdentifiers': [
+            {
+                'resourceType': ELB_RESOURCE_TYPE,
+                'resourceId': arn,
+                'resourceName': 'load-balancer-' + arn
+            } for arn in alb_arns
+        ]
+    })
+    CONFIG_CLIENT_MOCK.batch_get_resource_config = MagicMock(return_value={
+        'baseConfigurationItems': [
+            {
+                'resourceType': ELB_RESOURCE_TYPE,
+                'resourceId': arn,
+                'resourceName': 'load-balancer-' + arn,
+                'configuration': '{"type": "application"}'
+            } for arn in alb_arns
+        ]
+    })
