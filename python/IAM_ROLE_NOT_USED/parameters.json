@@ -1,0 +1,12 @@
+{
+  "Version": "1.0",
+  "Parameters": {
+    "RuleName": "IAM_ROLE_NOT_USED",
+    "SourceRuntime": "python3.6-lib",
+    "CodeKey": "IAM_ROLE_NOT_USED.zip",
+    "InputParameters": "{\"DaysBeforeUnused\": 90}",
+    "OptionalParameters": "{}",
+    "SourcePeriodic": "One_Hour"
+  },
+  "Tags": "[]"
+}
