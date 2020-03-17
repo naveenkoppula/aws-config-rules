@@ -33,7 +33,7 @@ Reports on:
 
 Rule Parameters:
   DaysBeforeUnused
-   (Optional) Number of days when AWS IAM Roles are considered unused (default 90 days). If the value is 0 will check for 24 hours
+   (Optional) Number of days when AWS IAM Roles are considered unused (default 90 days). If the value is 0, IAM Roles must be used at least once every 24 hours.
 
 Scenarios:
   Scenario: 1
